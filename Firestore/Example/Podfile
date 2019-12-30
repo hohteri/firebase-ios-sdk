@@ -32,7 +32,7 @@ end
 # Returns true if the user has explicitly requested local sources or if this is
 # a non-PR Travis build.
 def use_local_sources()
-  return ENV.has_key?('USE_LOCAL_SOURCES') || ENV['TRAVIS_PULL_REQUEST'] == 'false'
+  return 1 == 1 #ENV.has_key?('USE_LOCAL_SOURCES') || ENV['TRAVIS_PULL_REQUEST'] == 'false'
 end
 
 def xcode_major_version()
@@ -219,3 +219,16 @@ if is_platform(:tvos)
     end
   end
 end
+
+if is_platform(:watchos)
+  target 'Firestore_Example_watchOS' do
+    platform :watchos, '6.0'
+
+    pod 'leveldb-library', :path => '.'
+    pod 'gRPC-C++', :path => '.'
+    pod 'gRPC-Core', '1.26.0'
+    configure_local_pods()
+
+  end
+end
+
