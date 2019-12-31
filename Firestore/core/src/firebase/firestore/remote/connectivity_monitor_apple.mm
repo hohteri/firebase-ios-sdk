@@ -18,7 +18,9 @@
 
 #if defined(__APPLE__)
 
+#if !TARGET_OS_WATCH
 #include <SystemConfiguration/SystemConfiguration.h>
+#endif
 #include <dispatch/dispatch.h>
 #include <netinet/in.h>
 
@@ -36,7 +38,7 @@ namespace {
 
 using NetworkStatus = ConnectivityMonitor::NetworkStatus;
 using util::AsyncQueue;
-
+#if !TARGET_OS_WATCH
 NetworkStatus ToNetworkStatus(SCNetworkReachabilityFlags flags) {
   if (!(flags & kSCNetworkReachabilityFlagsReachable)) {
     return NetworkStatus::Unavailable;
@@ -65,7 +67,7 @@ SCNetworkReachabilityRef CreateReachability() {
 void OnReachabilityChangedCallback(SCNetworkReachabilityRef /*unused*/,
                                    SCNetworkReachabilityFlags flags,
                                    void* raw_this);
-
+#endif
 }  // namespace
 
 /**
@@ -77,6 +79,9 @@ class ConnectivityMonitorApple : public ConnectivityMonitor {
   explicit ConnectivityMonitorApple(
       const std::shared_ptr<AsyncQueue>& worker_queue)
       : ConnectivityMonitor{worker_queue} {
+#if TARGET_OS_WATCH
+    return;
+#else
     reachability_ = CreateReachability();
     if (!reachability_) {
       LOG_DEBUG("Failed to create reachability monitor.");
@@ -107,8 +112,10 @@ class ConnectivityMonitorApple : public ConnectivityMonitor {
       LOG_DEBUG("Couldn't set reachability queue");
       return;
     }
+#endif
   }
 
+#if !TARGET_OS_WATCH
   ~ConnectivityMonitorApple() {
     if (reachability_) {
       bool success =
@@ -128,10 +135,12 @@ class ConnectivityMonitorApple : public ConnectivityMonitor {
 
  private:
   SCNetworkReachabilityRef reachability_ = nil;
+#endif
 };
 
-namespace {
 
+namespace {
+#if !TARGET_OS_WATCH
 void OnReachabilityChangedCallback(SCNetworkReachabilityRef /*unused*/,
                                    SCNetworkReachabilityFlags flags,
                                    void* raw_this) {
@@ -139,8 +148,9 @@ void OnReachabilityChangedCallback(SCNetworkReachabilityRef /*unused*/,
   static_cast<ConnectivityMonitorApple*>(raw_this)->OnReachabilityChanged(
       flags);
 }
-
+#endif
 }  // namespace
+
 
 std::unique_ptr<ConnectivityMonitor> ConnectivityMonitor::Create(
     const std::shared_ptr<AsyncQueue>& worker_queue) {

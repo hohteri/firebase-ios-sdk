@@ -53,6 +53,11 @@ StatusOr<Path> AppDataDir(absl::string_view app_name) {
       NSCachesDirectory, NSUserDomainMask, YES);
   return Path::FromNSString(directories[0]).AppendUtf8(app_name);
 
+#elif TARGET_OS_WATCH
+NSArray<NSString*>* directories = NSSearchPathForDirectoriesInDomains(
+    NSDocumentDirectory, NSUserDomainMask, YES);
+return Path::FromNSString(directories[0]).AppendUtf8(app_name);
+
 #elif TARGET_OS_OSX
   std::string dot_prefixed = absl::StrCat(".", app_name);
   return Path::FromNSString(NSHomeDirectory()).AppendUtf8(dot_prefixed);
