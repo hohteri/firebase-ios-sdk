@@ -14,9 +14,14 @@
  * limitations under the License.
  */
 
-#import "DynamicLinks/FIRDLDefaultRetrievalProcessV2.h"
+#import "TargetConditionals.h"
 
+#import "DynamicLinks/FIRDLDefaultRetrievalProcessV2.h"
+#if !TARGET_OS_WATCH
 #import <UIKit/UIKit.h>
+#else
+#import <WatchKit/WatchKit.h>
+#endif
 #import "DynamicLinks/FIRDLJavaScriptExecutor.h"
 #import "DynamicLinks/FIRDLRetrievalProcessResult+Private.h"
 #import "DynamicLinks/FIRDynamicLink+Private.h"
@@ -111,9 +116,14 @@ NS_ASSUME_NONNULL_BEGIN
 #pragma mark - Internal methods
 
 - (void)retrievePendingDynamicLinkInternal {
+#if !TARGET_OS_WATCH
   CGRect mainScreenBounds = [UIScreen mainScreen].bounds;
+#else
+  CGRect mainScreenBounds = [WKInterfaceDevice currentDevice].screenBounds;
+#endif
   NSInteger resolutionWidth = mainScreenBounds.size.width;
   NSInteger resolutionHeight = mainScreenBounds.size.height;
+#if !TARGET_OS_WATCH
   if ([[[UIDevice currentDevice] model] isEqualToString:@"iPad"] &&
       UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPhone) {
     // iPhone App running in compatibility mode on iPad
@@ -121,6 +131,7 @@ NS_ASSUME_NONNULL_BEGIN
     resolutionWidth = 0;
     resolutionHeight = 0;
   }
+#endif
   NSURL *uniqueMatchLinkToCheck = [self uniqueMatchLinkToCheck];
 
   __weak __typeof__(self) weakSelf = self;
@@ -160,7 +171,12 @@ NS_ASSUME_NONNULL_BEGIN
   // If not unique match, we send request twice, since there are two server calls:
   // one for IPv4, another for IPV6.
   [_networkingService
-      retrievePendingDynamicLinkWithIOSVersion:[UIDevice currentDevice].systemVersion
+      retrievePendingDynamicLinkWithIOSVersion:
+#if !TARGET_OS_WATCH
+   [UIDevice currentDevice].systemVersion
+#else
+   [WKInterfaceDevice currentDevice].systemVersion
+#endif
                               resolutionHeight:resolutionHeight
                                resolutionWidth:resolutionWidth
                                         locale:FIRDLDeviceLocale()
@@ -269,6 +285,7 @@ NS_ASSUME_NONNULL_BEGIN
 }
 
 - (nullable NSURL *)uniqueMatchLinkToCheck {
+#if !TARGET_OS_WATCH
   _clipboardContentAtMatchProcessStart = nil;
   NSString *pasteboardContents = [UIPasteboard generalPasteboard].string;
   NSInteger linkStringMinimumLength =
@@ -293,16 +310,19 @@ NS_ASSUME_NONNULL_BEGIN
       }
     }
   }
+#endif
   return nil;
 }
 
 - (void)clearUsedUniqueMatchLinkToCheckFromClipboard {
+#if !TARGET_OS_WATCH
   // See discussion in b/65304652
   // We will clear clipboard after we used the unique match link from the clipboard
   if (_clipboardContentAtMatchProcessStart.length > 0 &&
       [_clipboardContentAtMatchProcessStart isEqualToString:_clipboardContentAtMatchProcessStart]) {
     [UIPasteboard generalPasteboard].string = @"";
   }
+#endif
 }
 
 - (void)fetchLocaleFromWebView {

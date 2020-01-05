@@ -16,7 +16,11 @@
 
 #import "DynamicLinks/Public/FIRDynamicLinks.h"
 
+#if !TARGET_OS_WATCH
 #import <UIKit/UIKit.h>
+#else
+#import <WatchKit/WatchKit.h>
+#endif
 
 #ifdef FIRDynamicLinks3P
 #import <FirebaseAnalyticsInterop/FIRAnalyticsInterop.h>
@@ -294,7 +298,7 @@ static const NSInteger FIRErrorCodeDurableDeepLinkFailed = -119;
   } else {
     _userDefaults = userDefaults;
   }
-
+#if !TARGET_OS_WATCH
   NSURL *url = launchOptions[UIApplicationLaunchOptionsURLKey];
   if (url) {
     if ([self canParseCustomSchemeURL:url] || [self canParseUniversalLinkURL:url]) {
@@ -303,6 +307,7 @@ static const NSInteger FIRErrorCodeDurableDeepLinkFailed = -119;
       [_userDefaults setBool:YES forKey:kFIRDLReadDeepLinkAfterInstallKey];
     }
   }
+#endif
   return YES;
 }
 
@@ -525,17 +530,21 @@ static const NSInteger FIRErrorCodeDurableDeepLinkFailed = -119;
 }
 
 - (void)passRetrievedDynamicLinkToApplication:(NSURL *)url {
+#if !TARGET_OS_WATCH
   id<UIApplicationDelegate> applicationDelegate = [UIApplication sharedApplication].delegate;
-  if (applicationDelegate &&
-      [applicationDelegate respondsToSelector:@selector(application:openURL:options:)]) {
-    // pass url directly to application delegate to avoid hop into
-    // iOS handling of the universal links
-    if (@available(iOS 9.0, *)) {
-      [applicationDelegate application:[UIApplication sharedApplication] openURL:url options:@{}];
-      return;
+    if (applicationDelegate &&
+        [applicationDelegate respondsToSelector:@selector(application:openURL:options:)]) {
+      // pass url directly to application delegate to avoid hop into
+      // iOS handling of the universal links
+      if (@available(iOS 9.0, *)) {
+        [applicationDelegate application:[UIApplication sharedApplication] openURL:url options:@{}];
+        return;
+      }
     }
-  }
-  [[UIApplication sharedApplication] openURL:url];
+    [[UIApplication sharedApplication] openURL:url];
+#else
+  [[WKExtension sharedExtension] openSystemURL:url];
+#endif
 }
 
 - (void)handlePendingDynamicLinkRetrievalFailureWithErrorCode:(NSInteger)errorCode
@@ -575,9 +584,15 @@ static NSString *kSelfDiagnoseOutputFooter =
   [genericDiagnosticInfo
       appendFormat:@"Firebase Dynamic Links framework version %@\n", kFIRDLVersion];
   [genericDiagnosticInfo appendFormat:@"System information: OS %@, OS version %@, model %@\n",
+#if !TARGET_OS_WATCH
                                       [UIDevice currentDevice].systemName,
                                       [UIDevice currentDevice].systemVersion,
                                       [UIDevice currentDevice].model];
+#else
+                                      [WKInterfaceDevice currentDevice].systemName,
+                                      [WKInterfaceDevice currentDevice].systemVersion,
+                                      [WKInterfaceDevice currentDevice].model];
+#endif
   [genericDiagnosticInfo appendFormat:@"Current date %@\n", [NSDate date]];
   // TODO: bring this diagnostic info back when we shipped non-automatic retrieval
   //  [genericDiagnosticInfo appendFormat:@"AutomaticRetrievalEnabled: %@\n",
@@ -686,10 +701,15 @@ static NSString *kSelfDiagnoseOutputFooter =
     [diagnosticString appendString:kSelfDiagnoseOutputHeader];
   }
 
-  NSInteger detectedErrorsCnt = 0;
-
   [diagnosticString appendString:[self genericDiagnosticInformation]];
-
+#if TARGET_OS_WATCH
+    // check is watchOS and print WARNING that Universal Links is not supported on watchOS
+    [diagnosticString
+        appendString:@"WARNING: watchOS does not support Universal Links. Firebase "
+                     @"Dynamic Links SDK functionality will be limited. Some FDL "
+                     @"features may be missing or will not work correctly.\n"];
+#else
+  NSInteger detectedErrorsCnt = 0;
 #if TARGET_IPHONE_SIMULATOR
   // check is Simulator and print WARNING that Universal Links is not supported on Simulator
   [diagnosticString
@@ -758,6 +778,7 @@ static NSString *kSelfDiagnoseOutputFooter =
   if (detectedErrors) {
     *detectedErrors = detectedErrorsCnt;
   }
+#endif
   return [diagnosticString copy];
 }
 

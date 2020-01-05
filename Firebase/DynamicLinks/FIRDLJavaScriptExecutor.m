@@ -13,8 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#import "TargetConditionals.h"
 
+#if !TARGET_OS_WATCH
 #import <WebKit/WebKit.h>
+#endif
 
 #import "DynamicLinks/FIRDLJavaScriptExecutor.h"
 
@@ -42,15 +45,20 @@ NSString *GINFingerprintJSMethodString() {
   return methodString;
 }
 
-@interface FIRDLJavaScriptExecutor () <WKNavigationDelegate>
+@interface FIRDLJavaScriptExecutor ()
+#if !TARGET_OS_WATCH
+<WKNavigationDelegate>
+#endif
 @end
 
 @implementation FIRDLJavaScriptExecutor {
   __weak id<FIRDLJavaScriptExecutorDelegate> _delegate;
   NSString *_script;
 
+#if !TARGET_OS_WATCH
   // Web view with which to run JavaScript.
   WKWebView *_wkWebView;
+#endif
 }
 
 - (instancetype)initWithDelegate:(id<FIRDLJavaScriptExecutorDelegate>)delegate
@@ -70,12 +78,13 @@ NSString *GINFingerprintJSMethodString() {
 
 #pragma mark - Internal methods
 - (void)start {
+#if !TARGET_OS_WATCH
   NSString *htmlContent =
       [NSString stringWithFormat:@"<html><head><script>%@</script></head></html>", _script];
-
   _wkWebView = [[WKWebView alloc] init];
   _wkWebView.navigationDelegate = self;
   [_wkWebView loadHTMLString:htmlContent baseURL:nil];
+#endif
 }
 
 - (void)handleExecutionResult:(NSString *)result {
@@ -92,10 +101,13 @@ NSString *GINFingerprintJSMethodString() {
 }
 
 - (void)cleanup {
+#if !TARGET_OS_WATCH
   _wkWebView.navigationDelegate = nil;
   _wkWebView = nil;
+#endif
 }
 
+#if !TARGET_OS_WATCH
 #pragma mark - WKNavigationDelegate
 
 - (void)webView:(WKWebView *)webView
@@ -131,7 +143,7 @@ NSString *GINFingerprintJSMethodString() {
             withError:(NSError *)error {
   [self handleExecutionError:error];
 }
-
+#endif
 @end
 
 NS_ASSUME_NONNULL_END

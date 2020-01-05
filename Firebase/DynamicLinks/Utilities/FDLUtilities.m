@@ -13,10 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+#import "TargetConditionals.h"
 
 #import "DynamicLinks/Utilities/FDLUtilities.h"
 
+#if !TARGET_OS_WATCH
 #import <UIKit/UIDevice.h>
+#else
+#import <WatchKit/WatchKit.h>
+#endif
 #include <sys/sysctl.h>
 
 NS_ASSUME_NONNULL_BEGIN
@@ -142,7 +147,12 @@ NSURL *FIRDLDeepLinkURLWithInviteID(NSString *_Nullable inviteID,
 }
 
 BOOL FIRDLOSVersionSupported(NSString *_Nullable systemVersion, NSString *minSupportedVersion) {
-  systemVersion = systemVersion ?: [UIDevice currentDevice].systemVersion;
+  systemVersion = systemVersion ?:
+#if !TARGET_OS_WATCH
+    [UIDevice currentDevice].systemVersion;
+#else
+    [WKInterfaceDevice currentDevice].systemVersion;
+#endif
   return [systemVersion compare:minSupportedVersion options:NSNumericSearch] != NSOrderedAscending;
 }
 

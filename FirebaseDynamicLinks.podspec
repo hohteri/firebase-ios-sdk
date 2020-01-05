@@ -17,6 +17,7 @@ Firebase Dynamic Links are deep links that enhance user experience and increase 
   }
   s.social_media_url = 'https://twitter.com/Firebase'
   s.ios.deployment_target = '8.0'
+  s.watchos.deployment_target = '6.0'
 
   s.cocoapods_version = '>= 1.4.0'
   s.static_framework = true
@@ -24,8 +25,8 @@ Firebase Dynamic Links are deep links that enhance user experience and increase 
 
   s.source_files = 'Firebase/DynamicLinks/**/*.[mh]'
   s.public_header_files = 'Firebase/DynamicLinks/Public/*.h'
-  s.frameworks = 'AssetsLibrary', 'MessageUI', 'QuartzCore'
-  s.weak_framework = 'WebKit'
+  s.ios.frameworks = 'AssetsLibrary', 'MessageUI', 'QuartzCore'
+  s.ios.weak_framework = 'WebKit'
   s.dependency 'FirebaseCore', '~> 6.2'
   s.dependency 'FirebaseAnalyticsInterop', '~> 1.3'
 
@@ -37,6 +38,7 @@ Firebase Dynamic Links are deep links that enhance user experience and increase 
   }
 
   s.test_spec 'unit' do |unit_tests|
+    unit_tests.platforms = {:ios => '8.0'}
     unit_tests.source_files = 'Example/DynamicLinks/Tests/*.[mh]'
     unit_tests.requires_app_host = true
     unit_tests.resources = 'Example/DynamicLinks/App/GoogleService-Info.plist',
